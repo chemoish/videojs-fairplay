@@ -11,11 +11,11 @@
     "lint:js": "eslint karma.conf.js src/ webpack/"
   },
   "keywords": [
-    "'html5'",
-    "'player'",
-    "'video'",
-    "'videojs'",
-    "'videojs-plugin'"
+    "html5",
+    "player",
+    "video",
+    "videojs",
+    "videojs-plugin"
   ],
   "author": "Carey Hinoki <carey.hinoki@gmail.com> (http://www.careyhinoki.me/)",
   "license": "MIT",
