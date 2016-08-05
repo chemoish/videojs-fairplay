@@ -8,8 +8,7 @@
     "build:development": "webpack --config webpack/webpack.config",
     "build:production": "webpack --config webpack/webpack.config.production",
     "start": "webpack-dev-server --config webpack/webpack-dev-server",
-    "lint:js": "eslint karma.conf.js src/ test/ webpack/",
-    "test": "karma start --single-run"
+    "lint:js": "eslint karma.conf.js src/ webpack/"
   },
   "keywords": [
     "'html5'",
