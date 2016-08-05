@@ -1,4 +1,3 @@
-/* eslint-disable */
 /* global videojs */
 
 import {
