@@ -1,12 +1,14 @@
-/* global videojs */
+/* global videojs, WebKitMediaKeys */
 
-import {
+import * as util from './util';
+import concatInitDataIdAndCertificate from './fairplay';
+
+const {
   arrayToString,
-  base64DecodeUint8Array,
-  base64EncodeUint8Array,
-  concatInitDataIdAndCertificate,
   getHostnameFromURI,
-} from './util';
+} = util;
+
+let logToBrowserConsole = false;
 
 class Html5Fairplay {
   constructor(source, tech, options) {
@@ -17,7 +19,19 @@ class Html5Fairplay {
     }
 
     this.el_ = tech.el();
+    this.player_ = videojs(options.playerId);
+    this.protection_ = source && source.protection;
     this.tech_ = tech;
+
+    this.onCertificateError = this.onCertificateError.bind(this);
+    this.onCertificateLoad = this.onCertificateLoad.bind(this);
+    this.onKeySessionWebkitKeyAdded = this.onKeySessionWebkitKeyAdded.bind(this);
+    this.onKeySessionWebkitKeyError = this.onKeySessionWebkitKeyError.bind(this);
+    this.onKeySessionWebkitKeyMessage = this.onKeySessionWebkitKeyMessage.bind(this);
+    this.onLicenseError = this.onLicenseError.bind(this);
+    this.onLicenseLoad = this.onLicenseLoad.bind(this);
+    this.onVideoError = this.onVideoError.bind(this);
+    this.onVideoWebkitNeedKey = this.onVideoWebkitNeedKey.bind(this);
 
     tech.isReady_ = false;
 
@@ -26,114 +40,159 @@ class Html5Fairplay {
     tech.triggerReady();
   }
 
-  // getCertificate() => onCertificateLoaded() => startVideo()
-  // onNeedKey() [start video] => licenseRequestReady() => licenseRequestLoaded() [session update]
-  dispose() {
+  createKeySession(keySystem, initData) {
+    if (!this.el_.webkitKeys) {
+      if (WebKitMediaKeys.isTypeSupported(keySystem, 'video/mp4')) {
+        this.el_.webkitSetMediaKeys(new WebKitMediaKeys(keySystem));
+      } else {
+        throw new Error('Key System not supported');
+      }
+    }
 
+    if (!this.el_.webkitKeys) {
+      throw new Error('Could not create MediaKeys');
+    }
+
+    const keySession = this.el_.webkitKeys.createSession('video/mp4', initData);
+
+    if (!keySession) {
+      throw new Error('Could not create key session');
+    }
+
+    return keySession;
   }
 
-  loadCertificate({ certificateUrl, keySystem, licenseUrl }, callback) {
+  fetchCertificate({ callback }) {
+    const { certificateUrl } = this.protection_;
+
     const request = new XMLHttpRequest();
 
     request.responseType = 'arraybuffer';
 
-    // onCertificateLoad
+    request.addEventListener('error', this.onCertificateError, false);
     request.addEventListener('load', (event) => {
-      this.certificate = new Uint8Array(event.target.response);
-
-      // onNeedKey
-      this.el_.addEventListener('webkitneedkey', (event) => {
-        console.log(event.target, event.initData);
-
-        const contentId = getHostnameFromURI(arrayToString(event.initData));
-
-        console.log(contentId);
-
-        const initData = concatInitDataIdAndCertificate(event.initData, contentId, this.certificate);
-
-        console.log(initData);
-
-        if (!this.el_.webkitKeys) {
-          if (WebKitMediaKeys.isTypeSupported(keySystem, 'video/mp4')) {
-            this.el_.webkitSetMediaKeys(new WebKitMediaKeys(keySystem));
-          } else {
-            throw 'Key System not supported';
-          }
-        }
-
-        if (!this.el_.webkitKeys) {
-          throw 'Could not create MediaKeys';
-        }
-
-        const keySession = this.el_.webkitKeys.createSession('video/mp4', initData);
-
-        if (!keySession) {
-          throw 'Could not create key session';
-        }
-
-        keySession.contentId = contentId;
-
-        // licenseRequestReady
-        keySession.addEventListener('webkitkeymessage', (event) => {
-          const contentId = encodeURIComponent(event.target.contentId);
-          const message = event.message;
-
-          const request = new XMLHttpRequest();
-
-          request.responseType = 'arraybuffer';
-          request.session = event.target;
-
-          // licenseRequestLoaded
-          request.addEventListener('load', (event) => {
-            event.target.session.update(new Uint8Array(event.target.response));
-          }, false);
-
-          // licenseRequestFailed
-          request.addEventListener('error', (event) => {
-            console.error('The license request failed.');
-          }, false);
-
-          request.open('POST', licenseUrl, true);
-          request.setRequestHeader('Content-type', 'application/octet-stream');
-          request.send(message);
-        }, false);
-
-        // onKeyAdded
-        keySession.addEventListener('webkitkeyadded', (event) => {
-          console.log('Decryption key was added to the session.');
-        }, false);
-
-        // onKeyError
-        keySession.addEventListener('webkitkeyerror', (event) => {
-          console.log('A decryption key error was encountered.');
-        }, false);
-      }, false);
-
-      // onError
-      this.el_.addEventListener('error', (event) => {
-        console.error('A video playback error occurred.');
-      }, false);
-
-      callback();
+      this.onCertificateLoad(event, {
+        callback,
+      });
     }, false);
-
-    // onCertificateError
-    request.addEventListener('error', (event => {
-      console.error('Failed to retrieve the server certificate.');
-    }), false);
 
     request.open('GET', certificateUrl, true);
     request.send();
   }
 
-  sendLicenseRequest() {
+  fetchLicense({ target, message }) {
+    const { licenseUrl } = this.protection_;
 
+    const request = new XMLHttpRequest();
+
+    request.responseType = 'arraybuffer';
+    request.session = target;
+
+    request.addEventListener('error', this.onLicenseError, false);
+    request.addEventListener('load', this.onLicenseLoad, false);
+
+    request.open('POST', licenseUrl, true);
+    request.setRequestHeader('Content-type', 'application/octet-stream');
+    request.send(message);
   }
 
-  src({ protection, src }) {
-    this.loadCertificate(protection, () => {
-      this.tech_.src(src);
+  hasProtection({ certificateUrl, keySystem, licenseUrl } = {}) {
+    return certificateUrl && keySystem && licenseUrl;
+  }
+
+  log(message) {
+    if (!logToBrowserConsole) {
+      return;
+    }
+
+    console.log(message);
+  }
+
+  onCertificateError() {
+    this.player_.error({
+      code: 0,
+      message: 'Failed to retrieve the server certificate.',
     });
+  }
+
+  onCertificateLoad(event, { callback }) {
+    this.certificate = new Uint8Array(event.target.response);
+
+    this.el_.addEventListener('error', this.onVideoError, false);
+    this.el_.addEventListener('webkitneedkey', this.onVideoWebkitNeedKey, false);
+
+    callback();
+  }
+
+  onKeySessionWebkitKeyAdded() {
+    this.log('Decryption key was added to the session.');
+  }
+
+  onKeySessionWebkitKeyError() {
+    this.player_.error({
+      code: 0,
+      message: 'A decryption key error was encountered.',
+    });
+  }
+
+  onKeySessionWebkitKeyMessage(event) {
+    const message = event.message;
+    const target = event.target;
+
+    this.fetchLicense({
+      message,
+      target,
+    });
+  }
+
+  onLicenseError() {
+    this.player_.error({
+      code: 0,
+      message: 'The license request failed.',
+    });
+  }
+
+  onLicenseLoad(event) {
+    event.target.session.update(new Uint8Array(event.target.response));
+  }
+
+  onVideoError() {
+    this.player_.error({
+      code: 0,
+      message: 'A video playback error occurred.',
+    });
+  }
+
+  onVideoWebkitNeedKey(event) {
+    const { keySystem } = this.protection_;
+
+    const contentId = getHostnameFromURI(arrayToString(event.initData));
+
+    const initData = concatInitDataIdAndCertificate(event.initData, contentId, this.certificate);
+
+    const keySession = this.createKeySession(keySystem, initData);
+
+    keySession.contentId = contentId;
+
+    keySession.addEventListener('webkitkeyadded', this.onKeySessionWebkitKeyAdded, false);
+    keySession.addEventListener('webkitkeyerror', this.onKeySessionWebkitKeyError, false);
+    keySession.addEventListener('webkitkeymessage', this.onKeySessionWebkitKeyMessage, false);
+  }
+
+  src({ src }) {
+    if (!this.hasProtection(this.protection_)) {
+      return this.tech_.src(src);
+    }
+
+    return this.fetchCertificate({
+      callback: () => {
+        this.tech_.src(src);
+      },
+    });
+  }
+
+  static setLogToBrowserConsole(value = false) {
+    logToBrowserConsole = value;
   }
 }
 
