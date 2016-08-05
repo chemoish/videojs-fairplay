@@ -1,0 +1,118 @@
+<!doctype html>
+<html class="no-js" lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  <title>VideoJS Fairplay Tech</title>
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <!-- Place favicon.ico in the root directory -->
+
+  <style>
+  fieldset
+  {
+    margin-bottom: 20px;
+  }
+
+  label
+  {
+    display: block;
+  }
+
+  input
+  {
+    margin-bottom: 5px;
+    padding: 5px;
+    width: 100%;
+  }
+
+  button
+  {
+    margin: 0;
+    margin-top: 20px;
+    padding: 8px 12px;
+  }
+  </style>
+
+  <link href="node_modules/video.js/dist/video-js.css" rel="stylesheet">
+</head>
+
+<body>
+  <fieldset>
+    <legend>
+      Fairplay
+    </legend>
+
+    <form onSubmit="play(event)">
+      <div>
+        <label>Certificate</label>
+        <input type="text" name="certificate_url" onblur="onBlur(event);" />
+      </div>
+
+      <div>
+        <label>Source</label>
+        <input type="text" name="source_url" onblur="onBlur(event);" />
+      </div>
+
+      <div>
+        <label>License</label>
+        <input type="text" name="license_url" onblur="onBlur(event);" />
+      </div>
+
+      <div>
+        <button type="submit">Submit</button>
+      </div>
+    </form>
+  </fieldset>
+
+  <video id="player" class="video-js vjs-default-skin vjs-big-play-centered" height="250" width="600" autoplay controls>
+    <p class="vjs-no-js">
+      To view this video please enable JavaScript, and consider upgrading to a web browser that
+      <a href="http://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a>
+    </p>
+  </video>
+
+  <script src="node_modules/video.js/dist/video.js"></script>
+  <script src="videojs.fairplay.js"></script>
+
+  <script>
+    var certificateUrl = document.getElementsByName('certificate_url')[0];
+    certificateUrl.value = localStorage.getItem('certificate_url');
+
+    var sourceUrl = document.getElementsByName('source_url')[0];
+    sourceUrl.value = localStorage.getItem('source_url');
+
+    var licenseUrl = document.getElementsByName('license_url')[0];
+    licenseUrl.value = localStorage.getItem('license_url');
+  </script>
+
+  <script>
+    function onBlur(event) {
+      localStorage.setItem(event.target.name, event.target.value);
+    }
+
+    function play(event) {
+      event.preventDefault();
+
+      // initialize the plugin
+      videojs('player').ready(function() {
+        this.src([{
+          src: sourceUrl.value,
+          type: 'application/x-mpegURL',
+
+          protection: {
+            keySystem: 'com.apple.fps.1_0',
+
+            certificateUrl: certificateUrl.value,
+            licenseUrl: licenseUrl.value,
+          },
+        }]);
+      });
+    }
+  </script>
+</body>
+
+</html>
