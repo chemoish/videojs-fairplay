@@ -41,6 +41,8 @@ class Html5Fairplay {
   }
 
   createKeySession(keySystem, initData) {
+    this.log('createKeySession()');
+
     if (!this.el_.webkitKeys) {
       if (WebKitMediaKeys.isTypeSupported(keySystem, 'video/mp4')) {
         this.el_.webkitSetMediaKeys(new WebKitMediaKeys(keySystem));
@@ -63,6 +65,8 @@ class Html5Fairplay {
   }
 
   fetchCertificate({ callback }) {
+    this.log('fetchCertificate()');
+
     const { certificateUrl } = this.protection_;
 
     const request = new XMLHttpRequest();
@@ -81,6 +85,8 @@ class Html5Fairplay {
   }
 
   fetchLicense({ target, message }) {
+    this.log('fetchLicense()');
+
     const { licenseUrl } = this.protection_;
 
     const request = new XMLHttpRequest();
@@ -97,18 +103,22 @@ class Html5Fairplay {
   }
 
   hasProtection({ certificateUrl, keySystem, licenseUrl } = {}) {
+    this.log('hasProtection()');
+
     return certificateUrl && keySystem && licenseUrl;
   }
 
-  log(message) {
+  log(...messages) {
     if (!logToBrowserConsole) {
       return;
     }
 
-    console.log(message);
+    console.log(...messages);
   }
 
   onCertificateError() {
+    this.log('onCertificateError()');
+
     this.player_.error({
       code: 0,
       message: 'Failed to retrieve the server certificate.',
@@ -116,6 +126,8 @@ class Html5Fairplay {
   }
 
   onCertificateLoad(event, { callback }) {
+    this.log('onCertificateLoad()');
+
     this.certificate = new Uint8Array(event.target.response);
 
     this.el_.addEventListener('error', this.onVideoError, false);
@@ -125,10 +137,14 @@ class Html5Fairplay {
   }
 
   onKeySessionWebkitKeyAdded() {
+    this.log('onKeySessionWebkitKeyAdded()');
+
     this.log('Decryption key was added to the session.');
   }
 
   onKeySessionWebkitKeyError() {
+    this.log('onKeySessionWebkitKeyError()');
+
     this.player_.error({
       code: 0,
       message: 'A decryption key error was encountered.',
@@ -136,6 +152,8 @@ class Html5Fairplay {
   }
 
   onKeySessionWebkitKeyMessage(event) {
+    this.log('onKeySessionWebkitKeyMessage()');
+
     const message = event.message;
     const target = event.target;
 
@@ -146,6 +164,8 @@ class Html5Fairplay {
   }
 
   onLicenseError() {
+    this.log('onLicenseError()');
+
     this.player_.error({
       code: 0,
       message: 'The license request failed.',
@@ -153,10 +173,14 @@ class Html5Fairplay {
   }
 
   onLicenseLoad(event) {
+    this.log('onLicenseLoad()');
+
     event.target.session.update(new Uint8Array(event.target.response));
   }
 
   onVideoError() {
+    this.log('onVideoError()');
+
     this.player_.error({
       code: 0,
       message: 'A video playback error occurred.',
@@ -164,6 +188,8 @@ class Html5Fairplay {
   }
 
   onVideoWebkitNeedKey(event) {
+    this.log('onVideoWebkitNeedKey()');
+
     const { keySystem } = this.protection_;
 
     const contentId = getHostnameFromURI(arrayToString(event.initData));
