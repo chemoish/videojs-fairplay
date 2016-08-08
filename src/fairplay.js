@@ -21,7 +21,7 @@ export default function concatInitDataIdAndCertificate(initData, id, certificate
 
   const initDataArray = new Uint8Array(buffer, offset, initData.byteLength);
   initDataArray.set(initData);
-  offset += initData.byteLength;
+  offset += initDataArray.byteLength;
 
   dataView.setUint32(offset, id.byteLength, true);
   offset += 4;
