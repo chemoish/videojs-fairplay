@@ -1,12 +1,7 @@
 /* global videojs, WebKitMediaKeys */
 
-import * as util from './util';
+import { arrayToString, getHostnameFromURI } from './util';
 import concatInitDataIdAndCertificate from './fairplay';
-
-const {
-  arrayToString,
-  getHostnameFromURI,
-} = util;
 
 let logToBrowserConsole = false;
 
