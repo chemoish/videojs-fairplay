@@ -6,6 +6,10 @@ import concatInitDataIdAndCertificate from './fairplay';
 let logToBrowserConsole = false;
 
 class Html5Fairplay {
+  static setLogToBrowserConsole(value = false) {
+    logToBrowserConsole = value;
+  }
+
   constructor(source, tech, options) {
     options = options || tech.options_;
 
@@ -210,10 +214,6 @@ class Html5Fairplay {
         this.tech_.src(src);
       },
     });
-  }
-
-  static setLogToBrowserConsole(value = false) {
-    logToBrowserConsole = value;
   }
 }
 
