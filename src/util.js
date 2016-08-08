@@ -3,7 +3,7 @@ export function arrayToString(array) {
 }
 
 export function base64DecodeUint8Array(input) {
-  const raw = window.atob(input);
+  const raw = atob(input);
 
   const rawLength = raw.length;
 
