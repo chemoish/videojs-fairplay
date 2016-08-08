@@ -80,23 +80,14 @@
   <script src="videojs.fairplay.js"></script>
 
   <script>
-    var certificateUrl = document.getElementsByName('certificate_url')[0];
-    certificateUrl.value = localStorage.getItem('certificate_url');
-
-    var sourceUrl = document.getElementsByName('source_url')[0];
-    sourceUrl.value = localStorage.getItem('source_url');
-
-    var licenseUrl = document.getElementsByName('license_url')[0];
-    licenseUrl.value = localStorage.getItem('license_url');
-  </script>
-
-  <script>
     function onBlur(event) {
       localStorage.setItem(event.target.name, event.target.value);
     }
 
     function play(event) {
       event.preventDefault();
+
+      videojs.Html5Fairplay.setLogToBrowserConsole(true);
 
       // initialize the plugin
       videojs('player').ready(function() {
@@ -113,6 +104,15 @@
         }]);
       });
     }
+
+    var certificateUrl = document.getElementsByName('certificate_url')[0];
+    certificateUrl.value = localStorage.getItem('certificate_url');
+
+    var sourceUrl = document.getElementsByName('source_url')[0];
+    sourceUrl.value = localStorage.getItem('source_url');
+
+    var licenseUrl = document.getElementsByName('license_url')[0];
+    licenseUrl.value = localStorage.getItem('license_url');
   </script>
 </body>
 
