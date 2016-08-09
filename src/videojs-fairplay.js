@@ -3,6 +3,7 @@
 import { arrayToString, getHostnameFromURI } from './util';
 import concatInitDataIdAndCertificate from './fairplay';
 
+let certificate;
 let logToBrowserConsole = false;
 
 class Html5Fairplay {
@@ -127,7 +128,13 @@ class Html5Fairplay {
   onCertificateLoad(event, { callback }) {
     this.log('onCertificateLoad()');
 
-    this.certificate = new Uint8Array(event.target.response);
+    if (certificate) {
+      callback();
+
+      return;
+    }
+
+    certificate = new Uint8Array(event.target.response);
 
     this.el_.addEventListener('error', this.onVideoError, false);
     this.el_.addEventListener('webkitneedkey', this.onVideoWebkitNeedKey, false);
@@ -174,7 +181,12 @@ class Html5Fairplay {
   onLicenseLoad(event) {
     this.log('onLicenseLoad()');
 
-    event.target.session.update(new Uint8Array(event.target.response));
+    const {
+      response,
+      session,
+    } = event.target;
+
+    session.update(new Uint8Array(response));
   }
 
   onVideoError() {
@@ -193,7 +205,7 @@ class Html5Fairplay {
 
     const contentId = getHostnameFromURI(arrayToString(event.initData));
 
-    const initData = concatInitDataIdAndCertificate(event.initData, contentId, this.certificate);
+    const initData = concatInitDataIdAndCertificate(event.initData, contentId, certificate);
 
     const keySession = this.createKeySession(keySystem, initData);
 
@@ -206,10 +218,12 @@ class Html5Fairplay {
 
   src({ src }) {
     if (!this.hasProtection(this.protection_)) {
-      return this.tech_.src(src);
+      this.tech_.src(src);
+
+      return;
     }
 
-    return this.fetchCertificate({
+    this.fetchCertificate({
       callback: () => {
         this.tech_.src(src);
       },
