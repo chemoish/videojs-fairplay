@@ -234,12 +234,16 @@ class Html5Fairplay {
 videojs.fairplaySourceHandler = function fairplaySourceHandler() {
   return {
     canHandleSource(source) {
-      const fairplayExtRE = /.m3u8/i;
+      if (!window.WebKitMediaKeys) {
+        return '';
+      }
 
-      if (videojs.fairplaySourceHandler.canPlayType(source.type)) {
+      const keySystem = source && source.protection && source.protection.keySystem;
+
+      const isTypeSupported = WebKitMediaKeys.isTypeSupported(keySystem, 'video/mp4');
+
+      if (isTypeSupported) {
         return 'probably';
-      } else if (fairplayExtRE.test(source.src)) {
-        return 'maybe';
       }
 
       return '';
@@ -259,7 +263,7 @@ videojs.fairplaySourceHandler.canPlayType = function canPlayType(type) {
   const fairplayTypeRE = /application\/x-mpegURL/i;
 
   if (fairplayTypeRE.test(type)) {
-    return 'probably';
+    return 'maybe';
   }
 
   return '';
