@@ -1,3 +1,7 @@
+const moment = require('moment');
+const pkg = require('../package.json');
+const webpack = require('webpack');
+
 module.exports = {
   entry: {
     'videojs.fairplay': './src/videojs-fairplay',
@@ -37,4 +41,18 @@ module.exports = {
       'video.js': 'videojs',
     },
   },
+
+  plugins: [
+    new webpack.BannerPlugin([
+      '/**',
+      ` * ${pkg.name} v${pkg.version}`,
+      ' * ',
+      ` * @author: ${pkg.author}`,
+      ` * @date: ${moment().format('YYYY-MM-DD')}`,
+      ' */',
+      '',
+    ].join('\n'), {
+      raw: true,
+    }),
+  ],
 };
