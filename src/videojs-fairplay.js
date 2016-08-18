@@ -216,6 +216,9 @@ class Html5Fairplay {
 
     // NOTE: videojs should handle video errors already
     // this.el_.addEventListener('error', this.onVideoError, false);
+
+    // NOTE: videojs must be reset every time a source is changed (to remove existing media keys).
+    // WIP: this means that `webkitneedkey` must also be reattached for the license to trigger?
     this.el_.addEventListener('webkitneedkey', this.onVideoWebkitNeedKey, false);
 
     if (certificate) {
