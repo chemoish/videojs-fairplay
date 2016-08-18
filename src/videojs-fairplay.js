@@ -128,16 +128,7 @@ class Html5Fairplay {
   onCertificateLoad(event, { callback }) {
     this.log('onCertificateLoad()');
 
-    if (certificate) {
-      callback();
-
-      return;
-    }
-
     certificate = new Uint8Array(event.target.response);
-
-    this.el_.addEventListener('error', this.onVideoError, false);
-    this.el_.addEventListener('webkitneedkey', this.onVideoWebkitNeedKey, false);
 
     callback();
   }
@@ -218,6 +209,16 @@ class Html5Fairplay {
 
   src({ src }) {
     if (!this.hasProtection(this.protection_)) {
+      this.tech_.src(src);
+
+      return;
+    }
+
+    // NOTE: videojs should handle video errors already
+    // this.el_.addEventListener('error', this.onVideoError, false);
+    this.el_.addEventListener('webkitneedkey', this.onVideoWebkitNeedKey, false);
+
+    if (certificate) {
       this.tech_.src(src);
 
       return;
