@@ -32,6 +32,8 @@ videojs('player_id').ready(function () {
 
 ## Known Issues
 
+SEE: https://forums.developer.apple.com/thread/60276
+
 1. Fairplay content cannot be played if `TextTrack`s exist. Beyond embedding them within the manifest, the only way to side load them is after the keys are updated.
 
   ```js
