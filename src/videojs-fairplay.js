@@ -103,6 +103,14 @@ class Html5Fairplay {
     request.send(message);
   }
 
+  getErrorResponse(response) {
+    if (!response) {
+      return 'NONE';
+    }
+
+    return String.fromCharCode.apply(null, new Uint8Array(response));
+  }
+
   hasProtection({ certificateUrl, keySystem, licenseUrl } = {}) {
     this.log('hasProtection()');
 
@@ -157,12 +165,6 @@ class Html5Fairplay {
       code: 0,
       message: errorMessage,
     });
-  }
-
-  getErrorResponse(response) {
-    return response ?
-      String.fromCharCode.apply(null, new Uint8Array(response)) :
-      'NONE';
   }
 
   onKeySessionWebkitKeyAdded() {
