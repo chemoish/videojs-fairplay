@@ -1,6 +1,6 @@
 {
   "name": "videojs-fairplay",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Video.js tech for supporting Fairplay streaming.",
   "main": "src/videojs-fairplay",
   "scripts": {
