@@ -20,6 +20,7 @@
   "author": "Carey Hinoki <carey.hinoki@gmail.com> (http://www.careyhinoki.me/)",
   "license": "MIT",
   "devDependencies": {
+    "babel-core": "^6.21.0",
     "babel-loader": "^6.2.4",
     "babel-plugin-transform-object-rest-spread": "^6.8.0",
     "babel-plugin-transform-runtime": "^6.12.0",

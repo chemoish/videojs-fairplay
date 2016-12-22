@@ -2,6 +2,7 @@
 
 import { arrayToString, getHostnameFromURI } from './util';
 import concatInitDataIdAndCertificate from './fairplay';
+import ERROR_TYPE from './error-type';
 
 let certificate;
 let logToBrowserConsole = false;
@@ -102,6 +103,14 @@ class Html5Fairplay {
     request.send(message);
   }
 
+  getErrorResponse(response) {
+    if (!response) {
+      return 'NONE';
+    }
+
+    return String.fromCharCode.apply(null, new Uint8Array(response));
+  }
+
   hasProtection({ certificateUrl, keySystem, licenseUrl } = {}) {
     this.log('hasProtection()');
 
@@ -128,9 +137,34 @@ class Html5Fairplay {
   onCertificateLoad(event, { callback }) {
     this.log('onCertificateLoad()');
 
-    certificate = new Uint8Array(event.target.response);
+    const {
+      response,
+      status,
+    } = event.target;
+
+    if (status !== 200) {
+      this.onRequestError(event.target, ERROR_TYPE.FETCH_CERTIFICATE);
+
+      return;
+    }
+
+    certificate = new Uint8Array(response);
 
     callback();
+  }
+
+  onRequestError(request, errorType = ERROR_TYPE.UNKNOWN) {
+    this.log('onRequestError()');
+
+    const errorMessage = `${errorType} - DRM: com.apple.fps.1_0 update, 
+      XHR status is '${request.statusText}(${request.status})', expected to be 200. 
+      readyState is '${request.readyState}'. 
+      Response is ${this.getErrorResponse(request.response)}`;
+
+    this.player_.error({
+      code: 0,
+      message: errorMessage,
+    });
   }
 
   onKeySessionWebkitKeyAdded() {
@@ -175,7 +209,14 @@ class Html5Fairplay {
     const {
       response,
       session,
+      status,
     } = event.target;
+
+    if (status !== 200) {
+      this.onRequestError(event.target, ERROR_TYPE.FETCH_LICENCE);
+
+      return;
+    }
 
     session.update(new Uint8Array(response));
   }
