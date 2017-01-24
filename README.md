@@ -24,6 +24,21 @@ videojs('player_id').ready(function () {
 
       certificateUrl: '/path/to/certificate',
       licenseUrl: '/path/to/license',
+
+      // Optional settings
+
+      // Instead of a certificateUrl send the cert in a string
+      certificate: 'base64string',
+
+      // Function to add any extra license request headers that might be needed
+      licenseRequestHeaders: function (request) {
+        request.setRequestHeader('my-extra-header', 'some important information');
+
+        return request;
+      },
+
+      // Whether to send cookies with the license request
+      withCredentials: true,
     },
   });
 });

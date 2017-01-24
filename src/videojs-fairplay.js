@@ -1,6 +1,6 @@
 /* global videojs, WebKitMediaKeys */
 
-import { arrayToString, getHostnameFromURI } from './util';
+import { arrayToString, base64DecodeUint8Array, getHostnameFromURI } from './util';
 import concatInitDataIdAndCertificate from './fairplay';
 import ERROR_TYPE from './error-type';
 
@@ -35,6 +35,11 @@ class Html5Fairplay {
     this.onVideoWebkitNeedKey = this.onVideoWebkitNeedKey.bind(this);
 
     tech.isReady_ = false;
+
+    if (this.protection_.certificate) {
+      this.log('Using base64 encoded certificate set on the source protection.');
+      certificate = base64DecodeUint8Array(this.protection_.certificate);
+    }
 
     this.src(source);
 
@@ -88,11 +93,20 @@ class Html5Fairplay {
   fetchLicense({ target, message }) {
     this.log('fetchLicense()');
 
-    const { licenseUrl } = this.protection_;
+    const {
+      licenseUrl,
+      licenseRequestHeaders,
+      withCredentials,
+    } = this.protection_;
 
-    const request = new XMLHttpRequest();
+    let request = new XMLHttpRequest();
 
     request.responseType = 'arraybuffer';
+
+    if (withCredentials) {
+      request.withCredentials = true;
+    }
+
     request.session = target;
 
     request.addEventListener('error', this.onLicenseError, false);
@@ -100,6 +114,11 @@ class Html5Fairplay {
 
     request.open('POST', licenseUrl, true);
     request.setRequestHeader('Content-type', 'application/octet-stream');
+
+    if (licenseRequestHeaders && typeof licenseRequestHeaders === 'function') {
+      request = licenseRequestHeaders(request);
+    }
+
     request.send(message);
   }
 
@@ -111,10 +130,10 @@ class Html5Fairplay {
     return String.fromCharCode.apply(null, new Uint8Array(response));
   }
 
-  hasProtection({ certificateUrl, keySystem, licenseUrl } = {}) {
+  hasProtection({ certificate: certificateString, certificateUrl, keySystem, licenseUrl } = {}) {
     this.log('hasProtection()');
 
-    return certificateUrl && keySystem && licenseUrl;
+    return (certificateString || certificateUrl) && keySystem && licenseUrl;
   }
 
   log(...messages) {
@@ -156,9 +175,9 @@ class Html5Fairplay {
   onRequestError(request, errorType = ERROR_TYPE.UNKNOWN) {
     this.log('onRequestError()');
 
-    const errorMessage = `${errorType} - DRM: com.apple.fps.1_0 update, 
-      XHR status is '${request.statusText}(${request.status})', expected to be 200. 
-      readyState is '${request.readyState}'. 
+    const errorMessage = `${errorType} - DRM: com.apple.fps.1_0 update,
+      XHR status is '${request.statusText}(${request.status})', expected to be 200.
+      readyState is '${request.readyState}'.
       Response is ${this.getErrorResponse(request.response)}`;
 
     this.player_.error({
