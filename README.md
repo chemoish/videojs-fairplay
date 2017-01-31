@@ -35,11 +35,13 @@ videojs('player_id').ready(function () {
         'my-extra-header': 'some important information'
       },
 
+      // Function to call back with license response content if it errors
       licenseResponseErrorContent: function (content) {
         // Do something with the license response content here
         console.log(content);
       },
 
+      // Function to handle the license response headers
       licenseResponseHeaders: function (headers) {
         // Do something with the headers here
         console.log(headers);
