@@ -30,11 +30,9 @@ videojs('player_id').ready(function () {
       // Instead of a certificateUrl send the cert in a string
       certificate: 'base64string',
 
-      // Function to add any extra license request headers that might be needed
-      licenseRequestHeaders: function (request) {
-        request.setRequestHeader('my-extra-header', 'some important information');
-
-        return request;
+      // Object to add any extra license request headers that might be needed
+      licenseRequestHeaders: {
+        'my-extra-header': 'some important information'
       },
 
       // Whether to send cookies with the license request

@@ -99,7 +99,7 @@ class Html5Fairplay {
       withCredentials,
     } = this.protection_;
 
-    let request = new XMLHttpRequest();
+    const request = new XMLHttpRequest();
 
     request.responseType = 'arraybuffer';
 
@@ -115,8 +115,10 @@ class Html5Fairplay {
     request.open('POST', licenseUrl, true);
     request.setRequestHeader('Content-type', 'application/octet-stream');
 
-    if (licenseRequestHeaders && typeof licenseRequestHeaders === 'function') {
-      request = licenseRequestHeaders(request);
+    if (licenseRequestHeaders) {
+      Object.keys(licenseRequestHeaders).forEach((header) => {
+        request.setRequestHeader(header, licenseRequestHeaders[header]);
+      });
     }
 
     request.send(message);
