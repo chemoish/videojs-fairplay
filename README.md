@@ -35,6 +35,16 @@ videojs('player_id').ready(function () {
         'my-extra-header': 'some important information'
       },
 
+      licenseResponseErrorContent: function (content) {
+        // Do something with the license response content here
+        console.log(content);
+      },
+
+      licenseResponseHeaders: function (headers) {
+        // Do something with the headers here
+        console.log(headers);
+      },
+
       // Whether to send cookies with the license request
       withCredentials: true,
     },

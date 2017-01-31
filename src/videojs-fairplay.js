@@ -12,6 +12,10 @@ class Html5Fairplay {
     logToBrowserConsole = value;
   }
 
+  ab2str(buf) {
+    return String.fromCharCode.apply(null, new Uint8Array(buf));
+  }
+
   constructor(source, tech, options) {
     options = options || tech.options_;
 
@@ -233,10 +237,36 @@ class Html5Fairplay {
       status,
     } = event.target;
 
+    const {
+      licenseResponseHeaders,
+      licenseResponseErrorContent,
+    } = this.protection_;
+
     if (status !== 200) {
       this.onRequestError(event.target, ERROR_TYPE.FETCH_LICENCE);
 
+      // Return response content
+      if (licenseResponseErrorContent && typeof licenseResponseErrorContent === 'function') {
+        licenseResponseErrorContent(this.ab2str(event.target.response));
+      }
+
       return;
+    }
+
+    // Return response headers here
+    if (licenseResponseHeaders && typeof licenseResponseHeaders === 'function') {
+      const headers = event.target.getAllResponseHeaders().split('\r\n').reduce((all, part) => {
+        const header = part.split(': ');
+
+        if (header[0] !== '') {
+          all[header[0].toLowerCase()] = header.slice(1).join(': ');
+        }
+
+        return all;
+      },
+      {});
+
+      licenseResponseHeaders(headers);
     }
 
     session.update(new Uint8Array(response));
