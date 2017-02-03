@@ -24,6 +24,31 @@ videojs('player_id').ready(function () {
 
       certificateUrl: '/path/to/certificate',
       licenseUrl: '/path/to/license',
+
+      // Optional settings
+
+      // Instead of a certificateUrl send the cert in a string
+      certificate: 'base64string',
+
+      // Object to add any extra license request headers that might be needed
+      licenseRequestHeaders: {
+        'my-extra-header': 'some important information'
+      },
+
+      // Function to call back with license response content if it errors
+      licenseResponseErrorContent: function (content) {
+        // Do something with the license response content here
+        console.log(content);
+      },
+
+      // Function to handle the license response headers
+      licenseResponseHeaders: function (headers) {
+        // Do something with the headers here
+        console.log(headers);
+      },
+
+      // Whether to send cookies with the license request
+      withCredentials: true,
     },
   });
 });

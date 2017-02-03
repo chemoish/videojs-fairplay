@@ -1,6 +1,6 @@
 /* global videojs, WebKitMediaKeys */
 
-import { arrayToString, getHostnameFromURI } from './util';
+import { arrayToString, base64DecodeUint8Array, getHostnameFromURI } from './util';
 import concatInitDataIdAndCertificate from './fairplay';
 import ERROR_TYPE from './error-type';
 
@@ -10,6 +10,10 @@ let logToBrowserConsole = false;
 class Html5Fairplay {
   static setLogToBrowserConsole(value = false) {
     logToBrowserConsole = value;
+  }
+
+  ab2str(buf) {
+    return String.fromCharCode.apply(null, new Uint8Array(buf));
   }
 
   constructor(source, tech, options) {
@@ -35,6 +39,11 @@ class Html5Fairplay {
     this.onVideoWebkitNeedKey = this.onVideoWebkitNeedKey.bind(this);
 
     tech.isReady_ = false;
+
+    if (this.protection_.certificate) {
+      this.log('Using base64 encoded certificate set on the source protection.');
+      certificate = base64DecodeUint8Array(this.protection_.certificate);
+    }
 
     this.src(source);
 
@@ -88,11 +97,20 @@ class Html5Fairplay {
   fetchLicense({ target, message }) {
     this.log('fetchLicense()');
 
-    const { licenseUrl } = this.protection_;
+    const {
+      licenseUrl,
+      licenseRequestHeaders,
+      withCredentials,
+    } = this.protection_;
 
     const request = new XMLHttpRequest();
 
     request.responseType = 'arraybuffer';
+
+    if (withCredentials) {
+      request.withCredentials = true;
+    }
+
     request.session = target;
 
     request.addEventListener('error', this.onLicenseError, false);
@@ -100,6 +118,13 @@ class Html5Fairplay {
 
     request.open('POST', licenseUrl, true);
     request.setRequestHeader('Content-type', 'application/octet-stream');
+
+    if (licenseRequestHeaders) {
+      Object.keys(licenseRequestHeaders).forEach((header) => {
+        request.setRequestHeader(header, licenseRequestHeaders[header]);
+      });
+    }
+
     request.send(message);
   }
 
@@ -111,10 +136,10 @@ class Html5Fairplay {
     return String.fromCharCode.apply(null, new Uint8Array(response));
   }
 
-  hasProtection({ certificateUrl, keySystem, licenseUrl } = {}) {
+  hasProtection({ certificate: certificateString, certificateUrl, keySystem, licenseUrl } = {}) {
     this.log('hasProtection()');
 
-    return certificateUrl && keySystem && licenseUrl;
+    return (certificateString || certificateUrl) && keySystem && licenseUrl;
   }
 
   log(...messages) {
@@ -156,9 +181,9 @@ class Html5Fairplay {
   onRequestError(request, errorType = ERROR_TYPE.UNKNOWN) {
     this.log('onRequestError()');
 
-    const errorMessage = `${errorType} - DRM: com.apple.fps.1_0 update, 
-      XHR status is '${request.statusText}(${request.status})', expected to be 200. 
-      readyState is '${request.readyState}'. 
+    const errorMessage = `${errorType} - DRM: com.apple.fps.1_0 update,
+      XHR status is '${request.statusText}(${request.status})', expected to be 200.
+      readyState is '${request.readyState}'.
       Response is ${this.getErrorResponse(request.response)}`;
 
     this.player_.error({
@@ -212,10 +237,36 @@ class Html5Fairplay {
       status,
     } = event.target;
 
+    const {
+      licenseResponseHeaders,
+      licenseResponseErrorContent,
+    } = this.protection_;
+
     if (status !== 200) {
       this.onRequestError(event.target, ERROR_TYPE.FETCH_LICENCE);
 
+      // Return response content
+      if (licenseResponseErrorContent && typeof licenseResponseErrorContent === 'function') {
+        licenseResponseErrorContent(this.ab2str(event.target.response));
+      }
+
       return;
+    }
+
+    // Return response headers here
+    if (licenseResponseHeaders && typeof licenseResponseHeaders === 'function') {
+      const headers = event.target.getAllResponseHeaders().split('\r\n').reduce((all, part) => {
+        const header = part.split(': ');
+
+        if (header[0] !== '') {
+          all[header[0].toLowerCase()] = header.slice(1).join(': ');
+        }
+
+        return all;
+      },
+      {});
+
+      licenseResponseHeaders(headers);
     }
 
     session.update(new Uint8Array(response));
